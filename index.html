@@ -1,5 +1,6 @@
 <html>
 <head>
+	<title>Calliope Ear Training</title>
 	<script src="./node_modules/soundfont-player/dist/soundfont-player.js"></script>
 	<script>
 		let instrument;
@@ -126,12 +127,11 @@
 			const index = randInt(0, testProgressions.length - 1);
 
 			const progression = testProgressions[index];
-			// const octaveRoot = randInt(-11, 11);
-			const octaveRoot = 0;
+			const octaveRoot = randInt(-11, 11);
 
 			const chords = progression.chords.map((chordNumber) => {
 				const chord = chordShapeFromTonality(getMode(progression.tonality), chordNumber - 1);
-				const inversion = randInt(0, 0);
+				const inversion = randInt(0, 2);
 				const invertedChord = applyInversion(chord, inversion);
 				const normalized = normalizeBassToOctave(invertedChord, octaveRoot);
 				return normalized;
@@ -179,7 +179,8 @@
 </head>
 
 <body>
-	<textarea id="progressions" autofocus="true" rows="10"></textarea>
+	<textarea id="progressions" autofocus="true" rows="10">1: 1 4 5
+1: 1 5 4</textarea>
 	<div>
 		<button onclick="test()">Test</button>
 		<div id="answer"></div>
