@@ -1,0 +1,181 @@
+    let instrument;
+
+    Soundfont.instrument(new AudioContext(), 'acoustic_grand_piano').then(function (instr) {
+        instrument = instr;
+    });
+
+    async function playChordFromOffsets(root, offsets) {
+        instrument.stop();
+        const sorted = [...offsets];
+        sorted.sort((a, b) => a - b);
+        for (const offset of sorted) {
+            instrument.play(root + offset);
+        }
+    }
+
+    const decimalToRoman = {
+        1: "I",
+        2: "II",
+        3: "III",
+        4: "IV",
+        5: "V",
+        6: "VI",
+        7: "VII",
+    };
+
+    const tonalityNumberToName = {
+        1: "Major (Ionian)",
+        2: "Dorian",
+        3: "Phrygian",
+        4: "Lydian",
+        5: "Mixolydian",
+        6: "Minor (Aeolian)",
+        7: "Locrian",
+    };
+
+    function tonalityNameFromNumber(number) {
+        return tonalityNumberToName[number];
+    }
+
+    const diatonicOffsets = [0, 2, 4, 5, 7, 9, 11];
+    const ionian = 1;
+    const aeolian = 6;
+
+    function getMode(number) {
+        const mode = [];
+        const numberFromIonian = number - 1;
+        const offset = noteFromTonality(diatonicOffsets, numberFromIonian);
+        while (mode.length < 7) {
+            mode.push(noteFromTonality(diatonicOffsets, mode.length + numberFromIonian) - offset);
+        }
+        return mode;
+    }
+
+    function notationFromChord(chord) {
+        const number = decimalToRoman[chord.root];
+        const inversion = chord.inversion ?? 0;
+        if (inversion === 0) {
+            return number;
+        }
+
+        return number + "/" + inversion;
+    }
+
+    // Number is a 0-based index.
+    function noteFromTonality(tonality, number) {
+        const octave = Math.floor(number / tonality.length);
+        return 12 * octave + tonality[number % tonality.length];
+    }
+
+    // Chord number is 0-based index.
+    function chordShapeFromTonality(tonality, chordNumber, inversion = 0) {
+        return applyInversion([
+            noteFromTonality(tonality, chordNumber),
+            noteFromTonality(tonality, chordNumber + 2),
+            noteFromTonality(tonality, chordNumber + 4),
+        ], inversion);
+    }
+
+    async function playChord(tonality, chord) {
+        await playChordFromOffsets(60, chord);
+    }
+
+    function applyInversion(chordShape, inversion) {
+        const octave = Math.floor(inversion / chordShape.length);
+        const normalInversion = inversion % chordShape.length;
+        const inverted = [];
+        for ([index, note] of chordShape.entries()) {
+            const octaveForNote = octave + (index < normalInversion ? 1 : 0);
+            inverted.push(note + 12 * octaveForNote);
+        }
+        return inverted;
+    }
+
+    function changeChordOctave(chord, octaveShift) {
+        return applyInversion(chord, chord.length * octaveShift);
+    }
+
+    function normalizeBassToOctave(chordShape, octaveRoot) {
+        const bassNote = Math.min(...chordShape);
+        const octaveAdjustment = -Math.floor((bassNote - octaveRoot) / 12);
+        return changeChordOctave(chordShape, octaveAdjustment);
+    }
+
+    const sleep = (delay) => new Promise((resolve) => setTimeout(resolve, delay))
+
+    let activeProgression = undefined;
+    async function playProgression(tonality, progression) {
+        const token = [];
+        activeProgression = token;
+        for (const chord of progression) {
+            if (activeProgression !== token) {
+                return;
+            }
+            await playChord(tonality, chord);
+            await sleep(750);
+        }
+    }
+
+    function randInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    async function test() {
+        const answer = document.getElementById("answer");
+        answer.textContent = "";
+
+        const testProgressions = getInputProgressions();
+        const index = randInt(0, testProgressions.length - 1);
+
+        const progression = testProgressions[index];
+        const octaveRoot = 0;
+
+        const chords = progression.chords.map(({ root, inversion }) => {
+            const chord = chordShapeFromTonality(getMode(progression.tonality), root - 1, inversion);
+            const normalized = normalizeBassToOctave(chord, octaveRoot);
+            // console.log(chord);
+            return normalized;
+        });
+
+        await playProgression(getMode(progression.tonality), chords);
+        await sleep(1000);
+        let text = tonalityNameFromNumber(progression.tonality) + ":&emsp;"
+        for (const chord of progression.chords) {
+            text += notationFromChord(chord) + "&emsp;";
+        }
+
+        answer.innerHTML = text;
+    }
+
+    function getInputProgressions() {
+        const text = document.getElementById("progressions").value;
+        return parseProgressions(text);
+    }
+
+    function parseProgressions(text) {
+        return text.split('\n').map((line) => parseProgression(line));
+    }
+
+    function parseProgression(text) {
+        const colon_splits = text.split(":");
+        if (colon_splits.length !== 2) {
+            return undefined;
+        }
+
+        const tonality = Number(colon_splits[0].trim());
+        const chords = [];
+        for (const word of colon_splits[1].split(/\s+/)) {
+            if (word.length > 0) {
+                chords.push(parseChord(word));
+            }
+        }
+        return { tonality, chords };
+    }
+
+    function parseChord(text) {
+        const [root, inversion] = text.split("/");
+        return {
+            root: root.trim(),
+            inversion: inversion?.trim(),
+        }
+    }
