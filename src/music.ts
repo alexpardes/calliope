@@ -1,5 +1,15 @@
 import * as Soundfont from 'soundfont-player'
-import { assert, err, sleep } from './util'
+import { err, sleep } from './util'
+
+const decimalToRoman: Map<number, string> = new Map([
+  [1, 'I'],
+  [2, 'II'],
+  [3, 'III'],
+  [4, 'IV'],
+  [5, 'V'],
+  [6, 'VI'],
+  [7, 'VII'],
+])
 
 export class MusicPlayer {
   private activeProgressionToken: object | undefined
@@ -19,7 +29,7 @@ export class MusicPlayer {
       if (this.activeProgressionToken !== token) {
         return
       }
-      await this.playChord(tonalityFromName(progression.tonality), chord)
+      await this.playChord(getTonality(progression.tonality), chord)
       await sleep(750)
     }
   }
@@ -38,16 +48,6 @@ export class MusicPlayer {
   }
 }
 
-const decimalToRoman: Map<number, string> = new Map([
-  [1, 'I'],
-  [2, 'II'],
-  [3, 'III'],
-  [4, 'IV'],
-  [5, 'V'],
-  [6, 'VI'],
-  [7, 'VII'],
-])
-
 export enum TonalityName {
   Ionian = 0,
   Dorian = 1,
@@ -59,58 +59,49 @@ export enum TonalityName {
   HarmonicMinor,
 }
 
-type Tonality = RelativeNote[]
+export class Tonality {
+  public constructor(
+    public readonly name: string,
+    private readonly scale: Scale,
+  ) {}
 
-const tonalityToName: Map<TonalityName, string> = new Map([
-  [TonalityName.Ionian, 'Major'],
-  [TonalityName.Dorian, 'Dorian'],
-  [TonalityName.Phrygian, 'Phrygian'],
-  [TonalityName.Lydian, 'Lydian'],
-  [TonalityName.Mixolydian, 'Mixolydian'],
-  [TonalityName.Aeolian, 'Nat. Minor'],
-  [TonalityName.Locrian, 'Locrian'],
-  [TonalityName.HarmonicMinor, 'Harm. Minor'],
-])
-
-function tonalityToString(tonality: TonalityName): string {
-  return tonalityToName.get(tonality) ?? err('Unknown tonality')
+  public getNote(note: ScaleNote): RelativeNote {
+    const octave = Math.floor(note / this.scale.length)
+    return 12 * octave + this.scale[note % this.scale.length]!
+  }
 }
 
+type Scale = RelativeNote[]
+
+const harmonicMinorScale: Scale = [0, 2, 3, 5, 7, 8, 11]
 const diatonicOffsets = [0, 2, 4, 5, 7, 9, 11]
 
-function getModalScale(modeNumber: number): Tonality {
+const tonalities: Map<TonalityName, Tonality> = new Map([
+  [TonalityName.Ionian, new Tonality('Major', getModalScale(0))],
+  [TonalityName.Dorian, new Tonality('Dorian', getModalScale(1))],
+  [TonalityName.Phrygian, new Tonality('Phrygian', getModalScale(2))],
+  [TonalityName.Lydian, new Tonality('Lydian', getModalScale(3))],
+  [TonalityName.Mixolydian, new Tonality('Mixolydian', getModalScale(4))],
+  [TonalityName.Aeolian, new Tonality('Nat. Minor', getModalScale(5))],
+  [TonalityName.Locrian, new Tonality('Locrian', getModalScale(6))],
+  [TonalityName.HarmonicMinor, new Tonality('Harm. Minor', harmonicMinorScale)],
+])
+
+export function getTonality(tonality: TonalityName): Tonality {
+  return tonalities.get(tonality) ?? err('Tonality not defined')
+}
+
+function getModalScale(modeNumber: number): Scale {
   const scale = []
-  const offset = noteFromTonality(diatonicOffsets, modeNumber)
+  const offset = noteFromScale(diatonicOffsets, modeNumber)
   while (scale.length < 7) {
-    scale.push(noteFromTonality(diatonicOffsets, scale.length + modeNumber) - offset)
+    scale.push(noteFromScale(diatonicOffsets, scale.length + modeNumber) - offset)
   }
   return scale
 }
 
-const harmonicMinorScale: Tonality = [0, 2, 3, 5, 7, 8, 11]
-
-function tonalityFromName(tonality: TonalityName): Tonality {
-  if (tonality <= 6) {
-    return getModalScale(tonality)
-  }
-
-  switch (tonality) {
-    case TonalityName.Ionian:
-    case TonalityName.Dorian:
-    case TonalityName.Phrygian:
-    case TonalityName.Lydian:
-    case TonalityName.Mixolydian:
-    case TonalityName.Aeolian:
-    case TonalityName.Locrian:
-      return getModalScale(tonality)
-
-    case TonalityName.HarmonicMinor:
-      return harmonicMinorScale
-  }
-}
-
 // Represents the nth note (zero indexed) in a given scale.
-type ScaleNote = number
+export type ScaleNote = number
 
 // Represents a note n semitones from a given root.
 type RelativeNote = number
@@ -129,9 +120,10 @@ export class ChordProgression {
   ) {}
 
   public toString(): string {
-    let string = tonalityToString(this.tonality) + ':'
+    const tonality = getTonality(this.tonality)
+    let string = tonality.name + ':'
     for (const chord of this.chords) {
-      string += emsp + chord.toString(tonalityFromName(this.tonality))
+      string += emsp + chord.toString(tonality)
     }
 
     return string
@@ -178,9 +170,9 @@ export class Chord {
 
   private toRelativeNotesBeforeInversion(tonality: Tonality): RelativeNote[] {
     return [
-      noteFromTonality(tonality, this.rootIndex),
-      noteFromTonality(tonality, this.rootIndex + 2),
-      noteFromTonality(tonality, this.rootIndex + 4),
+      tonality.getNote(this.rootIndex),
+      tonality.getNote(this.rootIndex + 2),
+      tonality.getNote(this.rootIndex + 4),
     ]
   }
 
@@ -225,9 +217,9 @@ export class Chord {
   }
 }
 
-function noteFromTonality(tonality: Tonality, number: ScaleNote) {
-  const octave = Math.floor(number / tonality.length)
-  return 12 * octave + tonality[number % tonality.length]!
+function noteFromScale(scale: Scale, number: ScaleNote) {
+  const octave = Math.floor(number / scale.length)
+  return 12 * octave + scale[number % scale.length]!
 }
 
 function applyInversion(chordShape: RelativeNote[], inversion: number) {

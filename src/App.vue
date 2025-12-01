@@ -1,24 +1,23 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, useTemplateRef, type Ref } from 'vue'
 import { Chord, ChordProgression, MusicPlayer, TonalityName } from './music'
 import { randInt, sleep } from './util'
+import ProgressionEditor from './ProgressionEditor.vue'
 
 let player: MusicPlayer
 MusicPlayer.new().then((musicPlayer) => {
   player = musicPlayer
 })
 
+const progressionEditor =
+  useTemplateRef<InstanceType<typeof ProgressionEditor>>('progressionEditor')
+
 const progressionAnswer = ref('')
 
 async function quiz() {
   progressionAnswer.value = ''
-  const testProgressions: ChordProgression[] = [
-    new ChordProgression(TonalityName.Ionian, [new Chord(0), new Chord(3), new Chord(4)]),
-    new ChordProgression(TonalityName.Ionian, [new Chord(0), new Chord(4), new Chord(3)]),
-  ]
-  const index = randInt(0, testProgressions.length - 1)
 
-  const progression = testProgressions[index]!
+  const progression = progressionEditor.value!.getProgression()
   await player.playProgression(progression)
   await sleep(1000)
   progressionAnswer.value = progression.toString()
@@ -26,8 +25,11 @@ async function quiz() {
 </script>
 
 <template>
-  <button @click="quiz">Quiz</button>
-  <div>{{ progressionAnswer }}</div>
+  <ProgressionEditor ref="progressionEditor" />
+  <div>
+    <button @click="quiz()">Quiz</button>
+    {{ progressionAnswer }}
+  </div>
 </template>
 
 <style scoped>
