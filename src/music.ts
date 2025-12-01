@@ -28,7 +28,7 @@ export class MusicPlayer {
     await this.playChordFromOffsets(60, chord.toOffsets(tonality))
   }
 
-  private async playChordFromOffsets(root: number, offsets: number[]) {
+  private async playChordFromOffsets(root: AbsoluteNote, offsets: RelativeNote[]) {
     this.instrument.stop()
     const sorted = [...offsets]
     sorted.sort((a, b) => a - b)
@@ -109,11 +109,16 @@ function tonalityFromName(tonality: TonalityName): Tonality {
   }
 }
 
-// Represents the nth note in a given scale.
+// Represents the nth note (zero indexed) in a given scale.
 type ScaleNote = number
 
 // Represents a note n semitones from a given root.
 type RelativeNote = number
+
+// Represents a note in the MIDI numbering scheme.
+// 60 is C4.
+// Each increment represents one semitone.
+type AbsoluteNote = number
 
 const emsp = '\u2003'
 
@@ -220,8 +225,7 @@ export class Chord {
   }
 }
 
-// Number is a 0-based index.
-function noteFromTonality(tonality: Tonality, number: number) {
+function noteFromTonality(tonality: Tonality, number: ScaleNote) {
   const octave = Math.floor(number / tonality.length)
   return 12 * octave + tonality[number % tonality.length]!
 }
