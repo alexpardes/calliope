@@ -14,14 +14,14 @@ const decimalToRoman: Map<number, string> = new Map([
 export class MusicPlayer {
   private activeProgressionToken: object | undefined
 
-  private constructor(private readonly instrument: any) {}
+  private constructor(private readonly instrument: Soundfont.Player) {}
 
   public static async new(): Promise<MusicPlayer> {
     const instrument = await Soundfont.instrument(new AudioContext(), 'acoustic_grand_piano')
     return new MusicPlayer(instrument)
   }
 
-  async playProgression(progression: ChordProgression) {
+  async playProgression(progression: ChordProgression): Promise<void> {
     this.instrument.stop()
     const token = {}
     this.activeProgressionToken = token
@@ -34,16 +34,16 @@ export class MusicPlayer {
     }
   }
 
-  async playChord(tonality: Tonality, chord: Chord) {
+  async playChord(tonality: Tonality, chord: Chord): Promise<void> {
     await this.playChordFromOffsets(60, chord.toOffsets(tonality))
   }
 
-  private async playChordFromOffsets(root: AbsoluteNote, offsets: RelativeNote[]) {
+  private async playChordFromOffsets(root: AbsoluteNote, offsets: RelativeNote[]): Promise<void> {
     this.instrument.stop()
     const sorted = [...offsets]
     sorted.sort((a, b) => a - b)
     for (const offset of sorted) {
-      this.instrument.play(root + offset)
+      this.instrument.play((root + offset).toString())
     }
   }
 }
@@ -152,7 +152,7 @@ export class Chord {
     return this.toStringBeforeInversion(tonality) + this.inversionToString()
   }
 
-  private toStringBeforeInversion(tonality: Tonality) {
+  private toStringBeforeInversion(tonality: Tonality): string {
     const romanNumerals =
       decimalToRoman.get(this.rootIndex + 1) ?? err('No notation found for chord root')
 
@@ -217,12 +217,12 @@ export class Chord {
   }
 }
 
-function noteFromScale(scale: Scale, number: ScaleNote) {
+function noteFromScale(scale: Scale, number: ScaleNote): RelativeNote {
   const octave = Math.floor(number / scale.length)
   return 12 * octave + scale[number % scale.length]!
 }
 
-function applyInversion(chordShape: RelativeNote[], inversion: number) {
+function applyInversion(chordShape: RelativeNote[], inversion: number): RelativeNote[] {
   const octave = Math.floor(inversion / chordShape.length)
   const normalInversion = inversion % chordShape.length
   const inverted = []
@@ -233,11 +233,14 @@ function applyInversion(chordShape: RelativeNote[], inversion: number) {
   return inverted
 }
 
-function changeChordOctave(chord: RelativeNote[], octaveShift: number) {
+function changeChordOctave(chord: RelativeNote[], octaveShift: number): RelativeNote[] {
   return applyInversion(chord, chord.length * octaveShift)
 }
 
-function normalizeBassToOctave(chordShape: RelativeNote[], octaveRoot: RelativeNote) {
+function normalizeBassToOctave(
+  chordShape: RelativeNote[],
+  octaveRoot: RelativeNote,
+): RelativeNote[] {
   const bassNote = Math.min(...chordShape)
   const octaveAdjustment = -Math.floor((bassNote - octaveRoot) / 12)
   return changeChordOctave(chordShape, octaveAdjustment)

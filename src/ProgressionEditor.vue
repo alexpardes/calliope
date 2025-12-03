@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { reactive, ref, type Reactive } from 'vue'
-import ChordCreator from './ChordCreator.vue'
 import {
   Chord,
   ChordProgression,
@@ -12,7 +11,14 @@ import {
 
 defineExpose({
   getProgression,
+  getCurrentTonality,
+  addChord,
+  removeChord,
 })
+
+const emit = defineEmits<{
+  changed: []
+}>()
 
 const tonality = ref(TonalityName.Ionian)
 const chordRoots: Reactive<ScaleNote[]> = reactive([])
@@ -31,6 +37,7 @@ function getCurrentTonality(): Tonality {
 
 function addChord(root: ScaleNote): void {
   chordRoots.push(root)
+  emit('changed')
 }
 
 function removeChord(): void {
@@ -49,12 +56,6 @@ function removeChord(): void {
       {{ chord.toString(getCurrentTonality()) }}
     </div>
   </div>
-
-  <ChordCreator
-    :tonality="getCurrentTonality()"
-    @selected="(root) => addChord(root)"
-    @remove-chord="removeChord()"
-  />
 </template>
 
 <style scoped>
