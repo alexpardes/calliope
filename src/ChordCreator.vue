@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { Chord, getTonality, type ScaleNote, Tonality, TonalityName } from './music'
 
-defineProps<{
-  // tonality: Tonality
+const props = defineProps<{
+  tonality: Tonality
 }>()
 
 const emit = defineEmits<{
@@ -15,15 +15,11 @@ const chordRoots = [0, 1, 2, 3, 4, 5, 6]
 function getChord(root: ScaleNote): Chord {
   return new Chord(root)
 }
-
-function getCurrentTonality(): Tonality {
-  return getTonality(TonalityName.Ionian)
-}
 </script>
 
 <template>
   <button v-for="chordRoot in chordRoots" @click="emit('selected', chordRoot)">
-    {{ getChord(chordRoot).toString(getCurrentTonality()) }}
+    {{ getChord(chordRoot).toString(props.tonality) }}
   </button>
   <button @click="emit('removeChord')">Delete</button>
 </template>
@@ -31,5 +27,17 @@ function getCurrentTonality(): Tonality {
 <style scoped>
 div {
   color: white;
+}
+
+button {
+  min-width: 40px;
+  background-color: hsl(180, 90%, 30%);
+  color: white;
+  border-radius: 4px;
+  box-shadow: none;
+  padding: 5px;
+  border-color: hsl(180, 90%, 40%);
+  font-size: 12pt;
+  margin: 1px;
 }
 </style>
