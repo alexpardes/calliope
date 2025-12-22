@@ -17,7 +17,7 @@ export class Tonality {
     private readonly scale: Scale,
   ) {}
 
-  public getNote(note: ScaleNote): RelativeNote {
+  public getNote(note: ScaleDegree): RelativeNote {
     const octave = Math.floor(note / this.scale.length)
     return 12 * octave + this.scale[note % this.scale.length]!
   }
@@ -53,7 +53,7 @@ function getModalScale(modeNumber: number): Scale {
 }
 
 // Represents the nth note (zero indexed) in a given scale.
-export type ScaleNote = number
+export type ScaleDegree = number
 
 // Represents a note n semitones from a given root.
 export type RelativeNote = number
@@ -63,7 +63,7 @@ export type RelativeNote = number
 // Each increment represents one semitone.
 export type AbsoluteNote = number
 
-function noteFromScale(scale: Scale, number: ScaleNote): RelativeNote {
+function noteFromScale(scale: Scale, number: ScaleDegree): RelativeNote {
   const octave = Math.floor(number / scale.length)
   return 12 * octave + scale[number % scale.length]!
 }

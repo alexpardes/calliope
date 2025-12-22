@@ -1,8 +1,8 @@
 import { err } from '@/utils'
-import type { RelativeNote, ScaleNote, Tonality } from './tonal'
+import type { RelativeNote, ScaleDegree, Tonality } from './tonal'
 
 export interface ChordFunction {
-  root: ScaleNote
+  root: ScaleDegree
 }
 
 export namespace Chord {
