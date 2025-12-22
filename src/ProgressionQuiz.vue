@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { reactive, ref, useTemplateRef, type Ref } from 'vue'
-import { Chord, ChordProgression, getTonality, MusicPlayer, Tonality, TonalityName } from './music'
+import { ChordProgression, getTonality, MusicPlayer, Tonality, TonalityName } from './music'
 import { randInt, sleep } from './util'
 import ProgressionEditor from './ProgressionEditor.vue'
 import ChordCreator from './ChordCreator.vue'
@@ -11,6 +11,8 @@ MusicPlayer.new().then((musicPlayer) => {
 })
 
 const selectedIndex = ref(0)
+
+// TODO: Progression states should be stored in this component.
 const progressions = reactive<object[]>([{}])
 const progressionEditors = useTemplateRef('progressionEditors')
 
@@ -29,6 +31,7 @@ function getSelectedTonality(): Tonality {
 }
 
 function addProgression(): void {
+  // TODO: Initialize new progression with the selected tonality.
   progressions.push({})
   selectedIndex.value = progressions.length - 1
 }
@@ -40,7 +43,7 @@ function deleteProgression(): void {
   }
 
   if (selectedIndex.value >= progressions.length) {
-    selectedIndex.value = progressions.length
+    selectedIndex.value = progressions.length - 1
   }
 }
 
@@ -61,7 +64,7 @@ async function quiz(): Promise<void> {
 </script>
 
 <template>
-  <div class="f">
+  <div>
     <div v-for="(_progression, index) in progressions">
       <div
         :class="['progression', { 'selected-progression': selectedIndex === index }]"
@@ -81,9 +84,9 @@ async function quiz(): Promise<void> {
   <div>
     <button @click="addProgression()">Add Progression</button>
     <button @click="deleteProgression()">Delete Progression</button>
+    <button @click="quiz()">Quiz</button>
   </div>
   <div>
-    <button @click="quiz()">Quiz</button>
     <div>{{ progressionAnswer }}</div>
   </div>
 </template>
@@ -95,12 +98,12 @@ div {
 
 .progression {
   display: inline-block;
-  min-width: 400px;
+  min-width: 375px;
 }
 
 .selected-progression {
   display: inline-block;
-  min-width: 400px;
+  min-width: 375px;
   background-color: white;
 }
 </style>
