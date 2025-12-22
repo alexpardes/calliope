@@ -5,6 +5,7 @@ import ProgressionView from './ProgressionView.vue'
 import ChordCreator from './ChordCreator.vue'
 import { ChordProgression, getTonality, Tonality, TonalityName } from './tonal'
 import { MusicPlayer } from './musicPlayer'
+import { buttonStyle } from './viewUtils'
 
 let player: MusicPlayer
 MusicPlayer.new().then((musicPlayer) => {
@@ -85,9 +86,9 @@ async function quiz(): Promise<void> {
     />
   </div>
   <div>
-    <button @click="addProgression()">Add Progression</button>
-    <button @click="deleteProgression()">Delete Progression</button>
-    <button @click="quiz()">Quiz</button>
+    <button @click="addProgression()" :style="buttonStyle">Add Progression</button>
+    <button @click="deleteProgression()" :style="buttonStyle">Delete Progression</button>
+    <button @click="quiz()" :style="buttonStyle">Quiz</button>
   </div>
   <div>
     <div>{{ progressionAnswer }}</div>
@@ -102,19 +103,22 @@ div {
 button {
   padding: 5px;
   margin: 1px;
+  color: white;
+  border-radius: 4px;
+  font-size: 12pt;
 }
 
 .progression {
   display: inline-block;
   min-width: 375px;
   border: 1px solid transparent;
-  border-radius: 5px;
+  border-radius: 4px;
 }
 
 .selected-progression {
   display: inline-block;
   min-width: 375px;
   border: 1px solid white;
-  border-radius: 5px;
+  border-radius: 4px;
 }
 </style>
