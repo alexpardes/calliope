@@ -20,7 +20,7 @@ const tonality = defineModel<TonalityName>({ required: true })
 
 <style scoped>
 .chord-progression {
-  margin: 10px 0px;
+  margin: 3px 0px;
 }
 
 .chord-icon {

@@ -99,6 +99,11 @@ div {
   color: white;
 }
 
+button {
+  padding: 5px;
+  margin: 1px;
+}
+
 .progression {
   display: inline-block;
   min-width: 375px;
