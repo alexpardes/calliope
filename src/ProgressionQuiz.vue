@@ -107,11 +107,14 @@ button {
 .progression {
   display: inline-block;
   min-width: 375px;
+  border: 1px solid transparent;
+  border-radius: 5px;
 }
 
 .selected-progression {
   display: inline-block;
   min-width: 375px;
-  background-color: white;
+  border: 1px solid white;
+  border-radius: 5px;
 }
 </style>
