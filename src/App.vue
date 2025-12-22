@@ -4,7 +4,6 @@ import ProgressionQuiz from './ProgressionQuiz.vue'
 
 <template>
   <div class="main-div">
-    Foo
     <ProgressionQuiz />
   </div>
 </template>

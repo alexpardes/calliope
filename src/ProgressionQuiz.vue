@@ -69,6 +69,21 @@ async function quiz(): Promise<void> {
 
 <template>
   <div>
+    <div>
+      <button @click="addProgression()" :style="buttonStyle">Add Progression</button>
+      <button @click="deleteProgression()" :style="buttonStyle">Delete Progression</button>
+      <button @click="quiz()" :style="buttonStyle">Quiz</button>
+    </div>
+    <div>
+      <div>{{ progressionAnswer }}</div>
+    </div>
+    <div>
+      <ChordCreator
+        :tonality="getSelectedTonality()"
+        @selected="(root) => getSelectedProgression().chords.push({ root })"
+        @remove-chord="getSelectedProgression().chords.pop()"
+      />
+    </div>
     <div v-for="(progression, index) in progressions">
       <div
         :class="['progression', { 'selected-progression': selectedIndex === index }]"
@@ -77,21 +92,6 @@ async function quiz(): Promise<void> {
         <ProgressionView :chords="progression.chords" v-model="progression.tonality" />
       </div>
     </div>
-  </div>
-  <div>
-    <ChordCreator
-      :tonality="getSelectedTonality()"
-      @selected="(root) => getSelectedProgression().chords.push({ root })"
-      @remove-chord="getSelectedProgression().chords.pop()"
-    />
-  </div>
-  <div>
-    <button @click="addProgression()" :style="buttonStyle">Add Progression</button>
-    <button @click="deleteProgression()" :style="buttonStyle">Delete Progression</button>
-    <button @click="quiz()" :style="buttonStyle">Quiz</button>
-  </div>
-  <div>
-    <div>{{ progressionAnswer }}</div>
   </div>
 </template>
 

@@ -3,8 +3,8 @@ import type { ScaleDegree } from './tonal'
 
 export function styleForChord(scaleDegree: ScaleDegree): StyleValue {
   const hue = hueForChord(scaleDegree)
-  const saturation = 0.7
-  const lightness = 0.5
+  const saturation = 0.65
+  const lightness = 0.45
   return {
     'background-color': colorStringFromHsl(hue, saturation, lightness),
     'border-color': colorStringFromHsl(hue, saturation, lightness - 0.05),
