@@ -1,5 +1,5 @@
 import * as Soundfont from 'soundfont-player'
-import { err, sleep } from './util'
+import { err, randInt, sleep } from './util'
 
 const decimalToRoman: Map<number, string> = new Map([
   [1, 'I'],
@@ -25,11 +25,28 @@ export class MusicPlayer {
     this.instrument.stop()
     const token = {}
     this.activeProgressionToken = token
+
+    let lastChord: RelativeNote[] | undefined
     for (const chord of progression.chords) {
       if (this.activeProgressionToken !== token) {
         return
       }
-      await this.playChord(getTonality(progression.tonality), chord)
+
+      let notes = chord.toOffsets(getTonality(progression.tonality))
+      if (lastChord !== undefined) {
+        if (randInt(0, 1) > 0) {
+          notes = moveChordTopAbove(notes, Math.max(...lastChord))
+        } else {
+          notes = moveChordBassBelow(notes, Math.min(...lastChord))
+        }
+      } else {
+        const inversion = randInt(-2, 2)
+        notes = applyInversion(notes, inversion)
+      }
+
+      lastChord = notes
+
+      await this.playChordFromOffsets(60, notes)
       await sleep(750)
     }
   }
@@ -233,15 +250,74 @@ function applyInversion(chordShape: RelativeNote[], inversion: number): Relative
   return inverted
 }
 
+function rotateChord(chord: RelativeNote[], count: number): RelativeNote[] {
+  const sortedChord = [...chord].sort((a, b) => a - b)
+
+  const octave = Math.floor(count / sortedChord.length)
+  const normalInversion = count % sortedChord.length
+  const inverted = []
+  for (const [index, note] of sortedChord.entries()) {
+    const octaveForNote = octave + (index < normalInversion ? 1 : 0)
+    inverted.push(note + 12 * octaveForNote)
+  }
+  return inverted
+}
+
 function changeChordOctave(chord: RelativeNote[], octaveShift: number): RelativeNote[] {
   return applyInversion(chord, chord.length * octaveShift)
 }
 
-function normalizeBassToOctave(
+/**
+ * @returns an adjusted copy of the chord,
+ * shifted such only its highest note is higher than the target note.
+ * The adjusted chord may be in a different inversion than the input chord.
+ */
+function moveChordTopAbove(chord: RelativeNote[], target: RelativeNote): RelativeNote[] {
+  let adjustedChord = normalizeTopToOctaveBelow(chord, target)
+  while (Math.max(...adjustedChord) <= target) {
+    adjustedChord = rotateChord(adjustedChord, 1)
+  }
+  return adjustedChord
+}
+
+/**
+ * @returns an adjusted copy of the chord,
+ * shifted such only its bass note is lower than the target note.
+ * The adjusted chord may be in a different inversion than the input chord.
+ */
+function moveChordBassBelow(chord: RelativeNote[], target: RelativeNote): RelativeNote[] {
+  let adjustedChord = normalizeBassToOctaveAbove(chord, target)
+  while (Math.min(...adjustedChord) >= target) {
+    adjustedChord = rotateChord(adjustedChord, -1)
+  }
+
+  return adjustedChord
+}
+
+/**
+ * @returns A copy of the chord shifted such that its bass note is in the
+ * octave which has `target` as its lowest note.
+ * The returned chord will be in the same inversion as the input chord.
+ */
+function normalizeBassToOctaveAbove(
   chordShape: RelativeNote[],
-  octaveRoot: RelativeNote,
+  target: RelativeNote,
 ): RelativeNote[] {
   const bassNote = Math.min(...chordShape)
-  const octaveAdjustment = -Math.floor((bassNote - octaveRoot) / 12)
+  const octaveAdjustment = Math.ceil((target - bassNote) / 12)
+  return changeChordOctave(chordShape, octaveAdjustment)
+}
+
+/**
+ * @returns A copy of the chord shifted such that its top note is in the
+ * octave which has `target` as its highest note.
+ * The returned chord will be in the same inversion as the input chord.
+ */
+function normalizeTopToOctaveBelow(
+  chordShape: RelativeNote[],
+  target: RelativeNote,
+): RelativeNote[] {
+  const topNote = Math.max(...chordShape)
+  const octaveAdjustment = Math.floor((target - topNote) / 12)
   return changeChordOctave(chordShape, octaveAdjustment)
 }
