@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Chord, getTonality, type ScaleNote, Tonality, TonalityName } from './music'
+import { Chord, type ScaleNote, Tonality } from './tonal'
 
 const props = defineProps<{
   tonality: Tonality
@@ -12,14 +12,14 @@ const emit = defineEmits<{
 
 const chordRoots = [0, 1, 2, 3, 4, 5, 6]
 
-function getChord(root: ScaleNote): Chord {
-  return new Chord(root)
+function getChordString(root: ScaleNote): string {
+  return Chord.toString({ root }, props.tonality)
 }
 </script>
 
 <template>
   <button v-for="chordRoot in chordRoots" @click="emit('selected', chordRoot)">
-    {{ getChord(chordRoot).toString(props.tonality) }}
+    {{ getChordString(chordRoot) }}
   </button>
   <button @click="emit('removeChord')">Delete</button>
 </template>
