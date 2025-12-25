@@ -10,7 +10,7 @@ import ProgressionQuiz from './ProgressionQuiz.vue'
 
 <style scoped>
 .main-div {
-  width: 375px;
+  width: 360px;
   margin: auto;
 }
 </style>

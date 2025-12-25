@@ -1,21 +1,32 @@
 import type { StyleValue } from 'vue'
 import type { ScaleDegree } from './tonal'
+import { err } from './utils'
 
 export function styleForChord(scaleDegree: ScaleDegree): StyleValue {
-  const hue = hueForChord(scaleDegree)
-  const saturation = 0.65
-  const lightness = 0.45
   return {
-    'background-color': colorStringFromHsl(hue, saturation, lightness),
-    'border-color': colorStringFromHsl(hue, saturation, lightness - 0.05),
+    'background-color': colorForChord(scaleDegree),
+    border: '1px solid #EEEEEE',
+    'font-family': 'Arial',
   }
 }
 
-function colorStringFromHsl(hue: number, saturation: number, lightness: number): string {
-  return 'hsl(' + hue + ', ' + saturation * 100 + '%, ' + lightness * 100 + '%)'
-}
-
-function hueForChord(scaleDegree: ScaleDegree): number {
-  // Evenly space seven notes in hue space.
-  return (scaleDegree * 360) / 7 + 10
+function colorForChord(scaleDegree: ScaleDegree): string {
+  switch (scaleDegree) {
+    case 0:
+      return '#E53935'
+    case 1:
+      return '#F57C00'
+    case 2:
+      return '#C0CA33'
+    case 3:
+      return '#4CAF50'
+    case 4:
+      return '#00ACC1'
+    case 5:
+      return '#1976D2'
+    case 6:
+      return '#9C27B0'
+    default:
+      err()
+  }
 }

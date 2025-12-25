@@ -110,14 +110,14 @@ button {
 
 .progression {
   display: inline-block;
-  min-width: 375px;
+  min-width: 360;
   border: 1px solid transparent;
   border-radius: 4px;
 }
 
 .selected-progression {
   display: inline-block;
-  min-width: 375px;
+  min-width: 360px;
   border: 1px solid white;
   border-radius: 4px;
 }
