@@ -3,7 +3,15 @@ import { reactive, ref } from 'vue'
 import { randInt, sleep } from './utils'
 import ProgressionView from './ProgressionView.vue'
 import ChordCreator from './ChordCreator.vue'
-import { ChordProgression, getTonality, Tonality, TonalityName } from './tonal'
+import {
+  Chord,
+  ChordProgression,
+  getTonality,
+  Tonality,
+  TonalityName,
+  type AbsoluteNote,
+  type ChordFunction,
+} from './tonal'
 import { MusicPlayer } from './musicPlayer'
 import { buttonStyle } from './viewUtils'
 
@@ -61,9 +69,38 @@ async function quiz(): Promise<void> {
   const progressionIndex = randInt(0, progressionOptions.length - 1)
 
   const progression = progressionOptions[progressionIndex]!
-  await player.playProgression(progression)
+  await player.playChords(getChordsForProgression(progression))
   await sleep(1000)
   progressionAnswer.value = ChordProgression.toString(progression)
+}
+
+function getChordsForProgression(progression: ChordProgression): AbsoluteNote[][] {
+  const rootNote: AbsoluteNote = 60
+  const tonality = getTonality(progression.tonality)
+  const chords: AbsoluteNote[][] = []
+  for (const chordFunc of progression.chords) {
+    chords.push(positionChord(chordFunc, rootNote, tonality, chords[chords.length - 1]))
+  }
+
+  return chords
+}
+
+function positionChord(
+  chord: ChordFunction,
+  root: AbsoluteNote,
+  tonality: Tonality,
+  lastChord: AbsoluteNote[] | undefined,
+): AbsoluteNote[] {
+  if (lastChord !== undefined) {
+    if (randInt(0, 1) > 0) {
+      return Chord.placeAboveChord(chord, root, tonality, lastChord)
+    } else {
+      return Chord.placeBelowChord(chord, root, tonality, lastChord)
+    }
+  } else {
+    const inversion = randInt(0, 2)
+    return Chord.placeCanonical(chord, root, tonality, inversion)
+  }
 }
 </script>
 

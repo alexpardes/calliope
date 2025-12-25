@@ -1,5 +1,5 @@
 import { err } from '@/utils'
-import type { RelativeNote, ScaleDegree, Tonality } from './tonal'
+import type { AbsoluteNote, RelativeNote, ScaleDegree, Tonality } from './tonal'
 
 export interface ChordFunction {
   root: ScaleDegree
@@ -15,10 +15,11 @@ export namespace Chord {
 
   export function placeCanonical(
     chord: ChordFunction,
+    root: AbsoluteNote,
     tonality: Tonality,
     inversion: number,
-  ): RelativeNote[] {
-    return applyInversion(toRelativeNotesBeforeInversion(chord, tonality), inversion)
+  ): AbsoluteNote[] {
+    return applyInversion(toNotesBeforeInversion(chord, root, tonality), inversion)
   }
 
   /**
@@ -28,11 +29,15 @@ export namespace Chord {
    */
   export function placeAboveChord(
     chordFunction: ChordFunction,
+    root: AbsoluteNote,
     tonality: Tonality,
-    targetChord: RelativeNote[],
-  ): RelativeNote[] {
+    targetChord: AbsoluteNote[],
+  ): AbsoluteNote[] {
     const targetNote = getTopNote(targetChord)
-    let chord = normalizeTopToOctaveBelow(placeCanonical(chordFunction, tonality, 0), targetNote)
+    let chord = normalizeTopToOctaveBelow(
+      placeCanonical(chordFunction, root, tonality, 0),
+      targetNote,
+    )
     while (getTopNote(chord) <= targetNote) {
       chord = rotateChord(chord, 1)
     }
@@ -46,12 +51,13 @@ export namespace Chord {
    */
   export function placeBelowChord(
     chordFunction: ChordFunction,
+    root: AbsoluteNote,
     tonality: Tonality,
-    targetChord: RelativeNote[],
-  ): RelativeNote[] {
+    targetChord: AbsoluteNote[],
+  ): AbsoluteNote[] {
     const targetNote = getBottomNote(targetChord)
     let adjustedChord = normalizeBassToOctaveAbove(
-      placeCanonical(chordFunction, tonality, 0),
+      placeCanonical(chordFunction, root, tonality, 0),
       targetNote,
     )
     while (Math.min(...adjustedChord) >= targetNote) {
@@ -61,14 +67,15 @@ export namespace Chord {
     return adjustedChord
   }
 
-  function toRelativeNotesBeforeInversion(
+  function toNotesBeforeInversion(
     chord: ChordFunction,
+    root: AbsoluteNote,
     tonality: Tonality,
-  ): RelativeNote[] {
+  ): AbsoluteNote[] {
     return [
-      tonality.getNote(chord.root),
-      tonality.getNote(chord.root + 2),
-      tonality.getNote(chord.root + 4),
+      root + tonality.getNote(chord.root),
+      root + tonality.getNote(chord.root + 2),
+      root + tonality.getNote(chord.root + 4),
     ]
   }
 
@@ -129,7 +136,7 @@ export namespace Chord {
   }
 
   function getQuality(chord: ChordFunction, tonality: Tonality): Quality {
-    const notes = toRelativeNotesBeforeInversion(chord, tonality)
+    const notes = toNotesBeforeInversion(chord, 0, tonality)
 
     const thirdInterval = notes[1]! - notes[0]!
     const fifthInterval = notes[2]! - notes[0]!
