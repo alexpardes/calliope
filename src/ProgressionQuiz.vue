@@ -7,10 +7,11 @@ import {
   Chord,
   ChordProgression,
   getTonality,
+  PositionedChordProgression,
   Tonality,
   TonalityName,
-  type AbsoluteNote,
   type ChordFunction,
+  type PositionedChord,
 } from './tonal'
 import { MusicPlayer } from './musicPlayer'
 import { buttonStyle } from './viewUtils'
@@ -69,17 +70,37 @@ async function quiz(): Promise<void> {
   const progressionIndex = randInt(0, progressionOptions.length - 1)
 
   const progression = progressionOptions[progressionIndex]!
-  await player.playChords(getChordsForProgression(progression))
-  await sleep(1000)
-  progressionAnswer.value = ChordProgression.toString(progression)
+  const positionedChords = getChordsForProgression(progression)
+  await player.playProgression(60, getTonality(progression.tonality), positionedChords)
+  await sleep(500)
+  progressionAnswer.value = PositionedChordProgression.toString({
+    tonality: progression.tonality,
+    chords: positionedChords,
+  })
 }
 
-function getChordsForProgression(progression: ChordProgression): AbsoluteNote[][] {
-  const rootNote: AbsoluteNote = 60
-  const tonality = getTonality(progression.tonality)
-  const chords: AbsoluteNote[][] = []
-  for (const chordFunc of progression.chords) {
-    chords.push(positionChord(chordFunc, rootNote, tonality, chords[chords.length - 1]))
+function getChordsForProgression(progression: ChordProgression): PositionedChord[] {
+  const unalteredChords: PositionedChord[] = []
+  const chords: PositionedChord[] = []
+
+  const shouldAlter: boolean = randInt(0, 1) === 1
+  const chordIdxToAlter = shouldAlter ? randInt(0, progression.chords.length - 1) : undefined
+  const alteredChord =
+    chordIdxToAlter !== undefined
+      ? { root: (progression.chords[chordIdxToAlter]!.root + randInt(1, 7)) % 7 }
+      : undefined
+
+  for (const [idx, chordFunc] of progression.chords.entries()) {
+    const originalChord = positionChord(chordFunc, unalteredChords[chords.length - 1])
+
+    unalteredChords.push(originalChord)
+
+    const chord =
+      idx === chordIdxToAlter
+        ? positionChord(alteredChord!, unalteredChords[chords.length - 1])
+        : originalChord
+
+    chords.push(chord)
   }
 
   return chords
@@ -87,19 +108,17 @@ function getChordsForProgression(progression: ChordProgression): AbsoluteNote[][
 
 function positionChord(
   chord: ChordFunction,
-  root: AbsoluteNote,
-  tonality: Tonality,
-  lastChord: AbsoluteNote[] | undefined,
-): AbsoluteNote[] {
+  lastChord: PositionedChord | undefined,
+): PositionedChord {
   if (lastChord !== undefined) {
     if (randInt(0, 1) > 0) {
-      return Chord.placeAboveChord(chord, root, tonality, lastChord)
+      return Chord.placeAboveChord(chord, lastChord)
     } else {
-      return Chord.placeBelowChord(chord, root, tonality, lastChord)
+      return Chord.placeBelowChord(chord, lastChord)
     }
   } else {
     const inversion = randInt(0, 2)
-    return Chord.placeCanonical(chord, root, tonality, inversion)
+    return { chord, position: inversion }
   }
 }
 </script>

@@ -1,4 +1,4 @@
-import { err } from '@/utils'
+import { boolToInt, err, posmod } from '@/utils'
 import type { AbsoluteNote, RelativeNote, ScaleDegree, Tonality } from './tonal'
 
 export interface ChordFunction {
@@ -23,48 +23,71 @@ export namespace Chord {
   }
 
   /**
-   * @returns the notes of the chord, placed such that only the highest note is higher than
+   * @returns the chord positioned such that only the highest note is higher than
    * the highest note of the target chord.
    * The returned chord may be in any inversion.
    */
   export function placeAboveChord(
-    chordFunction: ChordFunction,
-    root: AbsoluteNote,
-    tonality: Tonality,
-    targetChord: AbsoluteNote[],
-  ): AbsoluteNote[] {
+    chord: ChordFunction,
+    targetChord: PositionedChord,
+  ): PositionedChord {
     const targetNote = getTopNote(targetChord)
-    let chord = normalizeTopToOctaveBelow(
-      placeCanonical(chordFunction, root, tonality, 0),
-      targetNote,
-    )
-    while (getTopNote(chord) <= targetNote) {
-      chord = rotateChord(chord, 1)
+    let inversion = 0
+    let smallestInterval = 7
+
+    // We find the note in the chord which can be placed the smallest interval above the target note.
+    // The chord should be inverted to make that the top note.
+    for (let noteIdx = 0; noteIdx < 3; noteIdx++) {
+      const note = chord.root + 2 * noteIdx
+      const interval = posmod(note - targetNote, 7)
+      if (interval < smallestInterval) {
+        inversion = posmod(noteIdx + 1, 3)
+        smallestInterval = interval
+      }
     }
-    return chord
+
+    const topNoteIdx = posmod(2 + inversion, 3)
+    const topNote = chord.root + 2 * topNoteIdx
+    const octave = Math.ceil((targetNote - topNote) / 7) - boolToInt(inversion > 0)
+    return { chord, position: 3 * octave + inversion }
   }
 
   /**
-   * @returns the notes of the chord, placed such that only the lowest note is lower than
+   * @returns the chord positioned such that only the lowest note is lower than
    * the lowest note of the target chord.
    * The returned chord may be in any inversion.
    */
   export function placeBelowChord(
-    chordFunction: ChordFunction,
-    root: AbsoluteNote,
-    tonality: Tonality,
-    targetChord: AbsoluteNote[],
-  ): AbsoluteNote[] {
+    chord: ChordFunction,
+    targetChord: PositionedChord,
+  ): PositionedChord {
     const targetNote = getBottomNote(targetChord)
-    let adjustedChord = normalizeBassToOctaveAbove(
-      placeCanonical(chordFunction, root, tonality, 0),
-      targetNote,
-    )
-    while (Math.min(...adjustedChord) >= targetNote) {
-      adjustedChord = rotateChord(adjustedChord, -1)
+    let inversion = 0
+    let smallestInterval = 7
+
+    // We find the note in the chord which can be placed the smallest interval below the target note.
+    // The chord should be inverted to make that the bottom note.
+    for (let noteIdx = 0; noteIdx < 3; noteIdx++) {
+      const note = chord.root + 2 * noteIdx
+      const interval = posmod(targetNote - note, 7)
+      if (interval < smallestInterval) {
+        inversion = noteIdx
+        smallestInterval = interval
+      }
     }
 
-    return adjustedChord
+    const bottomNoteIdx = inversion
+    const bottomNote = chord.root + 2 * bottomNoteIdx
+    const octave = Math.floor((targetNote - bottomNote) / 7)
+    return { chord, position: 3 * octave + inversion }
+  }
+
+  export function getNotes(
+    root: AbsoluteNote,
+    tonality: Tonality,
+    chord: PositionedChord,
+  ): AbsoluteNote[] {
+    return applyInversion(toNotesBeforeInversion(chord.chord, root, tonality), chord.position)
   }
 
   function toNotesBeforeInversion(
@@ -81,7 +104,7 @@ export namespace Chord {
 
   function applyInversion(chordShape: RelativeNote[], inversion: number): RelativeNote[] {
     const octave = Math.floor(inversion / chordShape.length)
-    const normalInversion = inversion % chordShape.length
+    const normalInversion = posmod(inversion, chordShape.length)
     const inverted = []
     for (const [index, note] of chordShape.entries()) {
       const octaveForNote = octave + (index < normalInversion ? 1 : 0)
@@ -90,36 +113,31 @@ export namespace Chord {
     return inverted
   }
 
-  function rotateChord(chord: RelativeNote[], count: number): RelativeNote[] {
-    const sortedChord = [...chord].sort((a, b) => a - b)
-
-    const octave = Math.floor(count / sortedChord.length)
-    const normalInversion = count % sortedChord.length
-    const inverted = []
-    for (const [index, note] of sortedChord.entries()) {
-      const octaveForNote = octave + (index < normalInversion ? 1 : 0)
-      inverted.push(note + 12 * octaveForNote)
-    }
-    return inverted
+  function getTopNote(chord: PositionedChord): ScaleDegree {
+    const inversion = inversionFromPosition(chord)
+    const topNoteIndex = (2 + inversion) % 3
+    const note: ScaleDegree = chord.chord.root + 2 * topNoteIndex
+    const octave = octaveFromPosition(chord) + boolToInt(inversion > 0)
+    return 7 * octave + note
   }
 
-  function changeChordOctave(chord: RelativeNote[], octaveShift: number): RelativeNote[] {
-    return applyInversion(chord, chord.length * octaveShift)
+  function getBottomNote(chord: PositionedChord): ScaleDegree {
+    const note: ScaleDegree = chord.chord.root + 2 * inversionFromPosition(chord)
+    const octave = octaveFromPosition(chord)
+    return 7 * octave + note
   }
 
-  function getTopNote(chord: RelativeNote[]): RelativeNote {
-    return Math.max(...chord)
+  function inversionFromPosition(chord: PositionedChord): number {
+    // TODO: This assumes that the chord is a triad.
+    return posmod(chord.position, 3)
   }
 
-  function getBottomNote(chord: RelativeNote[]): RelativeNote {
-    return Math.min(...chord)
+  function octaveFromPosition(chord: PositionedChord): number {
+    // TODO: This assumes that the chord is a triad.
+    return Math.floor(chord.position / 3)
   }
 
   export function toString(chord: ChordFunction, tonality: Tonality): string {
-    return toStringBeforeInversion(chord, tonality) + inversionToString(0)
-  }
-
-  function toStringBeforeInversion(chord: ChordFunction, tonality: Tonality): string {
     const romanNumerals =
       decimalToRoman.get(chord.root + 1) ?? err('No notation found for chord root')
 
@@ -166,42 +184,6 @@ export namespace Chord {
     }
   }
 
-  function inversionToString(inversion: number): string {
-    if (inversion === 0) {
-      return ''
-    }
-
-    return '/' + (inversion * 2 + 1)
-  }
-
-  /**
-   * @returns A copy of the chord shifted such that its bass note is in the
-   * octave which has `target` as its lowest note.
-   * The returned chord will be in the same inversion as the input chord.
-   */
-  function normalizeBassToOctaveAbove(
-    chordShape: RelativeNote[],
-    target: RelativeNote,
-  ): RelativeNote[] {
-    const bassNote = Math.min(...chordShape)
-    const octaveAdjustment = Math.ceil((target - bassNote) / 12)
-    return changeChordOctave(chordShape, octaveAdjustment)
-  }
-
-  /**
-   * @returns A copy of the chord shifted such that its top note is in the
-   * octave which has `target` as its highest note.
-   * The returned chord will be in the same inversion as the input chord.
-   */
-  function normalizeTopToOctaveBelow(
-    chordShape: RelativeNote[],
-    target: RelativeNote,
-  ): RelativeNote[] {
-    const topNote = Math.max(...chordShape)
-    const octaveAdjustment = Math.floor((target - topNote) / 12)
-    return changeChordOctave(chordShape, octaveAdjustment)
-  }
-
   const decimalToRoman: Map<number, string> = new Map([
     [1, 'I'],
     [2, 'II'],
@@ -211,4 +193,29 @@ export namespace Chord {
     [6, 'VI'],
     [7, 'VII'],
   ])
+}
+
+export interface PositionedChord {
+  chord: ChordFunction
+
+  /**
+   * This is the number of inversions from the canonical position.
+   */
+  position: ChordPosition
+}
+
+export type ChordPosition = number
+
+export namespace PositionedChord {
+  export function toString(chord: PositionedChord, tonality: Tonality): string {
+    return Chord.toString(chord.chord, tonality) + inversionToString(posmod(chord.position, 3))
+  }
+
+  function inversionToString(inversion: number): string {
+    if (inversion === 0) {
+      return ''
+    }
+
+    return '/' + (inversion * 2 + 1)
+  }
 }

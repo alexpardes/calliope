@@ -13,3 +13,11 @@ export function assert(condition: boolean, message: string = ''): void {
     err(message)
   }
 }
+
+export function posmod(a: number, b: number): number {
+  return a - b * Math.floor(a / b)
+}
+
+export function boolToInt(bool: boolean): number {
+  return bool ? 1 : 0
+}
