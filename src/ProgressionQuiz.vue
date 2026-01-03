@@ -95,9 +95,11 @@ function getChordsForProgression(progression: ChordProgression): PositionedChord
 
     unalteredChords.push(originalChord)
 
+    // TODO: If the first chord in the progression is altered,
+    // place it adjacent to where the unaltered first chord would have been.
     const chord =
       idx === chordIdxToAlter
-        ? positionChord(alteredChord!, unalteredChords[chords.length - 1])
+        ? positionChord(alteredChord!, chords[chords.length - 1])
         : originalChord
 
     chords.push(chord)
