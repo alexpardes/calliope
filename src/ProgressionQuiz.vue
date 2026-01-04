@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
 import { randInt, sleep } from './utils'
-import ProgressionView from './ProgressionView.vue'
+import ProgressionView, { type ProgressionWithVoicings } from './ProgressionView.vue'
 import ChordCreator from './ChordCreator.vue'
 import {
   Chord,
@@ -24,23 +24,23 @@ MusicPlayer.new().then((musicPlayer) => {
 const selectedIndex = ref(0)
 
 // TODO: Progression states should be stored in this component.
-const progressions = reactive<ChordProgression[]>([newProgression()])
+const progressions = reactive<ProgressionWithVoicings[]>([newProgression()])
 const progressionAnswer = ref('')
 
 function selectProgression(index: number) {
   selectedIndex.value = index
 }
 
-function getSelectedProgression(): ChordProgression {
+function getSelectedProgression(): ProgressionWithVoicings {
   return progressions[selectedIndex.value]!
 }
 
 function getSelectedTonality(): Tonality {
-  return getTonality(getSelectedProgression().tonality)
+  return getTonality(getSelectedProgression().progression.tonality)
 }
 
-function newProgression(): ChordProgression {
-  return { tonality: TonalityName.Ionian, chords: [] }
+function newProgression(): ProgressionWithVoicings {
+  return { progression: { tonality: TonalityName.Ionian, chords: [] }, voicings: 1 }
 }
 
 function addProgression(): void {
@@ -70,17 +70,17 @@ async function quiz(): Promise<void> {
 
 function chooseRandomProgression(): PositionedChordProgression {
   const nonEmptyProgressionIndices: number[] = progressions
-    .map((progression, index) => [progression, index] as [ChordProgression, number])
-    .filter(([progression, _]) => progression.chords.length > 0)
+    .map((progression, index) => [progression, index] as [ProgressionWithVoicings, number])
+    .filter(([progression, _]) => progression.progression.chords.length > 0)
     .map(([_, index]) => index)
 
   const progressionIndex =
     nonEmptyProgressionIndices[randInt(0, nonEmptyProgressionIndices.length - 1)]!
 
-  const originalProgression = progressions[progressionIndex]!
+  const { progression: originalProgression, voicings } = progressions[progressionIndex]!
 
   const originalVoicing: ProgressionVoicing = {
-    firstChordPosition: 1,
+    firstChordPosition: randInt(1, voicings) % 3,
     chordMovements: Array.from(
       { length: originalProgression.chords.length - 1 },
       () => ChordMovement.Up,
@@ -142,8 +142,8 @@ function chooseRandomProgression(): PositionedChordProgression {
     <div>
       <ChordCreator
         :tonality="getSelectedTonality()"
-        @selected="(root) => getSelectedProgression().chords.push({ root })"
-        @remove-chord="getSelectedProgression().chords.pop()"
+        @selected="(root) => getSelectedProgression().progression.chords.push({ root })"
+        @remove-chord="getSelectedProgression().progression.chords.pop()"
       />
     </div>
     <div v-for="(progression, index) in progressions">
@@ -151,7 +151,7 @@ function chooseRandomProgression(): PositionedChordProgression {
         :class="['progression', { 'selected-progression': selectedIndex === index }]"
         @mousedown="selectProgression(index)"
       >
-        <ProgressionView :chords="progression.chords" v-model="progression.tonality" />
+        <ProgressionView v-model="progressions[index]!" />
       </div>
     </div>
   </div>
