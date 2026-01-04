@@ -5,13 +5,13 @@ import ProgressionView from './ProgressionView.vue'
 import ChordCreator from './ChordCreator.vue'
 import {
   Chord,
+  ChordMovement,
   ChordProgression,
   getTonality,
   PositionedChordProgression,
   Tonality,
   TonalityName,
-  type ChordFunction,
-  type PositionedChord,
+  type ProgressionVoicing,
 } from './tonal'
 import { MusicPlayer } from './musicPlayer'
 import { buttonStyle } from './viewUtils'
@@ -62,66 +62,70 @@ function deleteProgression(): void {
 
 async function quiz(): Promise<void> {
   progressionAnswer.value = ''
-
-  const progressionOptions: ChordProgression[] = progressions.filter(
-    (progression) => progression.chords.length > 0,
-  )
-
-  const progressionIndex = randInt(0, progressionOptions.length - 1)
-
-  const progression = progressionOptions[progressionIndex]!
-  const positionedChords = getChordsForProgression(progression)
-  await player.playProgression(60, getTonality(progression.tonality), positionedChords)
+  const progression = chooseRandomProgression()
+  await player.playPositionedProgression(progression, 60)
   await sleep(500)
-  progressionAnswer.value = PositionedChordProgression.toString({
-    tonality: progression.tonality,
-    chords: positionedChords,
-  })
+  progressionAnswer.value = PositionedChordProgression.toString(progression)
 }
 
-function getChordsForProgression(progression: ChordProgression): PositionedChord[] {
-  const unalteredChords: PositionedChord[] = []
-  const chords: PositionedChord[] = []
+function chooseRandomProgression(): PositionedChordProgression {
+  const nonEmptyProgressionIndices: number[] = progressions
+    .map((progression, index) => [progression, index] as [ChordProgression, number])
+    .filter(([progression, _]) => progression.chords.length > 0)
+    .map(([_, index]) => index)
 
-  const shouldAlter: boolean = randInt(0, 1) === 1
-  const chordIdxToAlter = shouldAlter ? randInt(0, progression.chords.length - 1) : undefined
-  const alteredChord =
-    chordIdxToAlter !== undefined
-      ? { root: (progression.chords[chordIdxToAlter]!.root + randInt(1, 7)) % 7 }
-      : undefined
+  const progressionIndex =
+    nonEmptyProgressionIndices[randInt(0, nonEmptyProgressionIndices.length - 1)]!
 
-  for (const [idx, chordFunc] of progression.chords.entries()) {
-    const originalChord = positionChord(chordFunc, unalteredChords[chords.length - 1])
+  const originalProgression = progressions[progressionIndex]!
 
-    unalteredChords.push(originalChord)
-
-    // TODO: If the first chord in the progression is altered,
-    // place it adjacent to where the unaltered first chord would have been.
-    const chord =
-      idx === chordIdxToAlter
-        ? positionChord(alteredChord!, chords[chords.length - 1])
-        : originalChord
-
-    chords.push(chord)
+  const originalVoicing: ProgressionVoicing = {
+    firstChordPosition: 1,
+    chordMovements: Array.from(
+      { length: originalProgression.chords.length - 1 },
+      () => ChordMovement.Up,
+    ),
   }
 
-  return chords
-}
+  let progression = originalProgression
+  let voicing = originalVoicing
 
-function positionChord(
-  chord: ChordFunction,
-  lastChord: PositionedChord | undefined,
-): PositionedChord {
-  if (lastChord !== undefined) {
-    if (randInt(0, 1) > 0) {
-      return Chord.placeAboveChord(chord, lastChord)
-    } else {
-      return Chord.placeBelowChord(chord, lastChord)
+  const shouldAlter: boolean = originalProgression.chords.length > 0 && randInt(0, 1) === 1
+  if (shouldAlter) {
+    // TODO: Support swapping chords as an alteration.
+    const chordIdxToAlter = randInt(0, originalProgression.chords.length - 1)
+    const alteredChord = {
+      root: (originalProgression.chords[chordIdxToAlter]!.root + randInt(1, 7)) % 7,
     }
-  } else {
-    const inversion = randInt(0, 2)
-    return { chord, position: inversion }
+
+    const alteredChords = [...originalProgression.chords]
+    alteredChords[chordIdxToAlter] = alteredChord
+
+    progression = { ...originalProgression, chords: alteredChords }
+    if (chordIdxToAlter === 0) {
+      // We want the altered progression to have the same chord movements as in the original voicing.
+      // Due to our represenation of the voicing, when altering the first chord,
+      // we may have to change the first chord position to preserve the movement direction between
+      // the first and second chords.
+      // TODO: Handle progressions with a single chord.
+      const secondChordMovement = originalVoicing.chordMovements[0]!
+      const positionedSecondChord = Chord.placeChordWithMovement(
+        originalProgression.chords[1]!,
+        { chord: originalProgression.chords[0]!, position: originalVoicing.firstChordPosition },
+        secondChordMovement,
+      )
+      voicing = {
+        ...originalVoicing,
+        firstChordPosition: Chord.placeChordWithMovement(
+          alteredChord,
+          positionedSecondChord,
+          ChordProgression.oppositeMovement(secondChordMovement),
+        ).position,
+      }
+    }
   }
+
+  return PositionedChordProgression.fromVoicedProgression({ progression, voicing })
 }
 </script>
 

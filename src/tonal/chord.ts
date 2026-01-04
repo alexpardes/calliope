@@ -1,5 +1,6 @@
 import { boolToInt, err, posmod } from '@/utils'
 import type { AbsoluteNote, RelativeNote, ScaleDegree, Tonality } from './tonal'
+import { ChordMovement } from './chordProgression'
 
 export interface ChordFunction {
   root: ScaleDegree
@@ -20,6 +21,19 @@ export namespace Chord {
     inversion: number,
   ): AbsoluteNote[] {
     return applyInversion(toNotesBeforeInversion(chord, root, tonality), inversion)
+  }
+
+  export function placeChordWithMovement(
+    chord: ChordFunction,
+    prevChord: PositionedChord,
+    movement: ChordMovement,
+  ): PositionedChord {
+    switch (movement) {
+      case ChordMovement.Up:
+        return placeAboveChord(chord, prevChord)
+      case ChordMovement.Down:
+        return placeBelowChord(chord, prevChord)
+    }
   }
 
   /**

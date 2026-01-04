@@ -1,5 +1,11 @@
 import * as Soundfont from 'soundfont-player'
-import { Chord, Tonality, type AbsoluteNote, type PositionedChord } from './tonal'
+import {
+  Chord,
+  getTonality,
+  PositionedChordProgression,
+  type AbsoluteNote,
+  type VoicedProgression,
+} from './tonal'
 import { sleep } from './utils'
 
 export class MusicPlayer {
@@ -12,12 +18,24 @@ export class MusicPlayer {
     return new MusicPlayer(instrument)
   }
 
-  public async playProgression(
+  public async playVoicedProgression(
+    progression: VoicedProgression,
     rootNote: AbsoluteNote,
-    tonality: Tonality,
-    chords: PositionedChord[],
   ): Promise<void> {
-    await this.playChords(chords.map((chord) => Chord.getNotes(rootNote, tonality, chord)))
+    await this.playPositionedProgression(
+      PositionedChordProgression.fromVoicedProgression(progression),
+      rootNote,
+    )
+  }
+
+  public async playPositionedProgression(
+    progression: PositionedChordProgression,
+    rootNote: AbsoluteNote,
+  ): Promise<void> {
+    const tonality = getTonality(progression.tonality)
+    await this.playChords(
+      progression.chords.map((chord) => Chord.getNotes(rootNote, tonality, chord)),
+    )
   }
 
   private async playChords(chords: AbsoluteNote[][]): Promise<void> {

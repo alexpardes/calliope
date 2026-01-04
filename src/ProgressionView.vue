@@ -11,8 +11,13 @@ const tonality = defineModel<TonalityName>({ required: true })
   <div class="chord-progression">
     <select name="tonality" id="tonality" v-model="tonality" :style="buttonStyle">
       <option :value="TonalityName.Ionian">Major</option>
-      <option :value="TonalityName.Aeolian">N. Minor</option>
       <option :value="TonalityName.HarmonicMinor">H. Minor</option>
+      <option :value="TonalityName.Aeolian">N. Minor</option>
+      <option :value="TonalityName.Dorian">Dorian</option>
+      <option :value="TonalityName.Phrygian">Phyrigian</option>
+      <option :value="TonalityName.Lydian">Lydian</option>
+      <option :value="TonalityName.Mixolydian">Mixolydian</option>
+      <option :value="TonalityName.Locrian">Locrian</option>
     </select>
     <div v-for="chord in chords" class="chord-icon" :style="styleForChord(chord.root)">
       {{ Chord.toString(chord, getTonality(tonality)) }}
