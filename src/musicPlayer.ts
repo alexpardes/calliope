@@ -49,7 +49,7 @@ export class MusicPlayer {
       }
 
       this.playChord(chord)
-      await sleep(750)
+      await sleep(900)
     }
   }
 
