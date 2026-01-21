@@ -90,7 +90,7 @@ function chooseRandomProgression(): PositionedChordProgression {
   let progression = originalProgression
   let voicing = originalVoicing
 
-  const shouldAlter: boolean = originalProgression.chords.length > 0 && randInt(0, 1) === 1
+  const shouldAlter: boolean = originalProgression.chords.length > 1 && randInt(0, 1) === 1
   if (shouldAlter) {
     // TODO: Support swapping chords as an alteration.
     const chordIdxToAlter = randInt(0, originalProgression.chords.length - 1)
