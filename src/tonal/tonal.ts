@@ -1,4 +1,4 @@
-import { err } from '../utils'
+import { err, posmod } from '../utils'
 
 export enum TonalityName {
   Ionian = 0,
@@ -19,7 +19,7 @@ export class Tonality {
 
   public getNote(note: ScaleDegree): RelativeNote {
     const octave = Math.floor(note / this.scale.length)
-    return 12 * octave + this.scale[note % this.scale.length]!
+    return 12 * octave + this.scale[posmod(note, this.scale.length)]!
   }
 }
 

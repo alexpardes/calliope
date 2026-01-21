@@ -4,6 +4,7 @@ import {
   getTonality,
   PositionedChordProgression,
   type AbsoluteNote,
+  type ScaleDegree,
   type VoicedProgression,
 } from './tonal'
 import { sleep } from './utils'
@@ -21,24 +22,28 @@ export class MusicPlayer {
   public async playVoicedProgression(
     progression: VoicedProgression,
     rootNote: AbsoluteNote,
+    timeBetweenChords: number,
   ): Promise<void> {
     await this.playPositionedProgression(
       PositionedChordProgression.fromVoicedProgression(progression),
       rootNote,
+      timeBetweenChords,
     )
   }
 
   public async playPositionedProgression(
     progression: PositionedChordProgression,
     rootNote: AbsoluteNote,
+    timeBetweenChords: number,
   ): Promise<void> {
     const tonality = getTonality(progression.tonality)
     await this.playChords(
       progression.chords.map((chord) => Chord.getNotes(rootNote, tonality, chord)),
+      timeBetweenChords,
     )
   }
 
-  private async playChords(chords: AbsoluteNote[][]): Promise<void> {
+  public async playChords(chords: AbsoluteNote[][], timeBetweenChords: number): Promise<void> {
     this.instrument.stop()
     const token = {}
     this.activeProgressionToken = token
@@ -49,8 +54,12 @@ export class MusicPlayer {
       }
 
       this.playChord(chord)
-      await sleep(900)
+      await sleep(timeBetweenChords)
     }
+  }
+
+  public stop(): void {
+    this.instrument.stop()
   }
 
   private playChord(chord: AbsoluteNote[]): void {

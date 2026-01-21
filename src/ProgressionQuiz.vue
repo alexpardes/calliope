@@ -11,6 +11,7 @@ import {
   PositionedChordProgression,
   Tonality,
   TonalityName,
+  type AbsoluteNote,
   type ProgressionVoicing,
 } from './tonal'
 import { MusicPlayer } from './musicPlayer'
@@ -60,12 +61,27 @@ function deleteProgression(): void {
   }
 }
 
+const tonalCenter: AbsoluteNote = 60
+
 async function quiz(): Promise<void> {
   progressionAnswer.value = ''
   const progression = chooseRandomProgression()
-  await player.playPositionedProgression(progression, 60)
+  await player.playChords(createEstablishingPattern(progression.tonality, tonalCenter), 200)
+  await sleep(400)
+  player.stop()
+  await sleep(800)
+
+  await player.playPositionedProgression(progression, tonalCenter, 1000)
   await sleep(500)
   progressionAnswer.value = PositionedChordProgression.toString(progression)
+}
+
+function createEstablishingPattern(
+  tonalityName: TonalityName,
+  tonalCenter: AbsoluteNote,
+): AbsoluteNote[][] {
+  const tonality = getTonality(tonalityName)
+  return [4, 5, 4, 3, 2, 1, -1, 0].map((degree) => [tonality.getNote(degree) + tonalCenter])
 }
 
 function chooseRandomProgression(): PositionedChordProgression {
