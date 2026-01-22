@@ -40,13 +40,18 @@ function getSelectedTonality(): Tonality {
   return getTonality(getSelectedProgression().progression.tonality)
 }
 
-function newProgression(tonality: TonalityName = TonalityName.Ionian): ProgressionWithVoicings {
-  return { progression: { tonality, chords: [] }, voicings: 1 }
+function newProgression(
+  tonality: TonalityName = TonalityName.Ionian,
+  voicings: number = 3,
+): ProgressionWithVoicings {
+  return { progression: { tonality, chords: [] }, voicings }
 }
 
 function addProgression(): void {
-  // TODO: Initialize new progression with the selected tonality.
-  progressions.push(newProgression(getSelectedProgression().progression.tonality))
+  const selectedProgression = getSelectedProgression()
+  progressions.push(
+    newProgression(selectedProgression.progression.tonality, selectedProgression.voicings),
+  )
   selectedIndex.value = progressions.length - 1
 }
 
