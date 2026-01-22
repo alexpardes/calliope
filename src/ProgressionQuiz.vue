@@ -66,6 +66,10 @@ const tonalCenter: AbsoluteNote = 60
 async function quiz(): Promise<void> {
   progressionAnswer.value = ''
   const progression = chooseRandomProgression()
+  if (progression === undefined) {
+    return
+  }
+
   await player.playChords(createEstablishingPattern(progression.tonality, tonalCenter), 200)
   await sleep(400)
   player.stop()
@@ -84,11 +88,15 @@ function createEstablishingPattern(
   return [4, 5, 4, 3, 2, 1, -1, 0].map((degree) => [tonality.getNote(degree) + tonalCenter])
 }
 
-function chooseRandomProgression(): PositionedChordProgression {
+function chooseRandomProgression(): PositionedChordProgression | undefined {
   const nonEmptyProgressionIndices: number[] = progressions
     .map((progression, index) => [progression, index] as [ProgressionWithVoicings, number])
     .filter(([progression, _]) => progression.progression.chords.length > 0)
     .map(([_, index]) => index)
+
+  if (nonEmptyProgressionIndices.length === 0) {
+    return undefined
+  }
 
   const progressionIndex =
     nonEmptyProgressionIndices[randInt(0, nonEmptyProgressionIndices.length - 1)]!
@@ -125,14 +133,14 @@ function chooseRandomProgression(): PositionedChordProgression {
       // the first and second chords.
       // TODO: Handle progressions with a single chord.
       const secondChordMovement = originalVoicing.chordMovements[0]!
-      const positionedSecondChord = Chord.placeChordWithMovement(
+      const positionedSecondChord = Chord.placeWithMovement(
         originalProgression.chords[1]!,
         { chord: originalProgression.chords[0]!, position: originalVoicing.firstChordPosition },
         secondChordMovement,
       )
       voicing = {
         ...originalVoicing,
-        firstChordPosition: Chord.placeChordWithMovement(
+        firstChordPosition: Chord.placeWithMovement(
           alteredChord,
           positionedSecondChord,
           ChordProgression.oppositeMovement(secondChordMovement),

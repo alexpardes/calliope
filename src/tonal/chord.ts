@@ -14,16 +14,14 @@ export namespace Chord {
     Dim,
   }
 
-  export function placeCanonical(
-    chord: ChordFunction,
-    root: AbsoluteNote,
-    tonality: Tonality,
-    inversion: number,
-  ): AbsoluteNote[] {
-    return applyInversion(toNotesBeforeInversion(chord, root, tonality), inversion)
+  export function placeBassInFirstOctave(chord: ChordFunction, inversion: number): PositionedChord {
+    const normalizedInversion = posmod(inversion, triadSize)
+    const bottomNote = chord.root + 2 * normalizedInversion
+    const octave = Math.ceil(-bottomNote / scaleLength)
+    return { chord, position: octave * triadSize + normalizedInversion }
   }
 
-  export function placeChordWithMovement(
+  export function placeWithMovement(
     chord: ChordFunction,
     prevChord: PositionedChord,
     movement: ChordMovement,
@@ -47,23 +45,23 @@ export namespace Chord {
   ): PositionedChord {
     const targetNote = getTopNote(targetChord)
     let inversion = 0
-    let smallestInterval = 7
+    let smallestInterval = scaleLength
 
     // We find the note in the chord which can be placed the smallest interval above the target note.
     // The chord should be inverted to make that the top note.
-    for (let noteIdx = 0; noteIdx < 3; noteIdx++) {
+    for (let noteIdx = 0; noteIdx < triadSize; noteIdx++) {
       const note = chord.root + 2 * noteIdx
-      const interval = posmod(note - targetNote, 7)
+      const interval = posmod(note - targetNote, scaleLength)
       if (interval < smallestInterval) {
-        inversion = posmod(noteIdx + 1, 3)
+        inversion = posmod(noteIdx + 1, triadSize)
         smallestInterval = interval
       }
     }
 
-    const topNoteIdx = posmod(2 + inversion, 3)
+    const topNoteIdx = posmod(2 + inversion, triadSize)
     const topNote = chord.root + 2 * topNoteIdx
-    const octave = Math.ceil((targetNote - topNote) / 7) - boolToInt(inversion > 0)
-    return { chord, position: 3 * octave + inversion }
+    const octave = Math.ceil((targetNote - topNote) / scaleLength) - boolToInt(inversion > 0)
+    return { chord, position: triadSize * octave + inversion }
   }
 
   /**
@@ -77,13 +75,13 @@ export namespace Chord {
   ): PositionedChord {
     const targetNote = getBottomNote(targetChord)
     let inversion = 0
-    let smallestInterval = 7
+    let smallestInterval = scaleLength
 
     // We find the note in the chord which can be placed the smallest interval below the target note.
     // The chord should be inverted to make that the bottom note.
-    for (let noteIdx = 0; noteIdx < 3; noteIdx++) {
+    for (let noteIdx = 0; noteIdx < triadSize; noteIdx++) {
       const note = chord.root + 2 * noteIdx
-      const interval = posmod(targetNote - note, 7)
+      const interval = posmod(targetNote - note, scaleLength)
       if (interval < smallestInterval) {
         inversion = noteIdx
         smallestInterval = interval
@@ -92,8 +90,8 @@ export namespace Chord {
 
     const bottomNoteIdx = inversion
     const bottomNote = chord.root + 2 * bottomNoteIdx
-    const octave = Math.floor((targetNote - bottomNote) / 7)
-    return { chord, position: 3 * octave + inversion }
+    const octave = Math.floor((targetNote - bottomNote) / scaleLength)
+    return { chord, position: triadSize * octave + inversion }
   }
 
   export function getNotes(
@@ -129,26 +127,24 @@ export namespace Chord {
 
   function getTopNote(chord: PositionedChord): ScaleDegree {
     const inversion = inversionFromPosition(chord)
-    const topNoteIndex = (2 + inversion) % 3
+    const topNoteIndex = (2 + inversion) % triadSize
     const note: ScaleDegree = chord.chord.root + 2 * topNoteIndex
     const octave = octaveFromPosition(chord) + boolToInt(inversion > 0)
-    return 7 * octave + note
+    return scaleLength * octave + note
   }
 
   function getBottomNote(chord: PositionedChord): ScaleDegree {
     const note: ScaleDegree = chord.chord.root + 2 * inversionFromPosition(chord)
     const octave = octaveFromPosition(chord)
-    return 7 * octave + note
+    return scaleLength * octave + note
   }
 
   function inversionFromPosition(chord: PositionedChord): number {
-    // TODO: This assumes that the chord is a triad.
-    return posmod(chord.position, 3)
+    return posmod(chord.position, triadSize)
   }
 
   function octaveFromPosition(chord: PositionedChord): number {
-    // TODO: This assumes that the chord is a triad.
-    return Math.floor(chord.position / 3)
+    return Math.floor(chord.position / triadSize)
   }
 
   export function toString(chord: ChordFunction, tonality: Tonality): string {
@@ -222,7 +218,9 @@ export type ChordPosition = number
 
 export namespace PositionedChord {
   export function toString(chord: PositionedChord, tonality: Tonality): string {
-    return Chord.toString(chord.chord, tonality) + inversionToString(posmod(chord.position, 3))
+    return (
+      Chord.toString(chord.chord, tonality) + inversionToString(posmod(chord.position, triadSize))
+    )
   }
 
   function inversionToString(inversion: number): string {
@@ -233,3 +231,6 @@ export namespace PositionedChord {
     return '/' + (inversion * 2 + 1)
   }
 }
+
+const scaleLength = 7
+const triadSize = 3

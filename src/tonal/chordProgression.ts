@@ -57,10 +57,12 @@ export namespace PositionedChordProgression {
     for (let chordIdx = 0; chordIdx < progression.progression.chords.length; chordIdx++) {
       const chord = progression.progression.chords[chordIdx]!
       if (chordIdx === 0) {
-        positionedChords.push({ chord, position: progression.voicing.firstChordPosition })
+        positionedChords.push(
+          Chord.placeBassInFirstOctave(chord, progression.voicing.firstChordPosition),
+        )
       } else {
         positionedChords.push(
-          Chord.placeChordWithMovement(
+          Chord.placeWithMovement(
             chord,
             positionedChords[positionedChords.length - 1]!,
             progression.voicing.chordMovements[chordIdx - 1]!,
